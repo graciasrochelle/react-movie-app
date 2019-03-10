@@ -15,21 +15,19 @@ class MovieList extends Component {
               <div className="row">
                 <MovieConsumer>
                 {value => {
-                  console.log(value);
-                  if(!value.isLoading && value.error !== undefined){
+                  if(value.isLoading){
+                    return (
+                      <div className="col-9 mx-auto col-md-6 col-lg-3 my-3 align-self-center ">
+                        <img alt="loading..." src={loading}/>
+                      </div>
+                      );
+                  }else if(!value.isLoading && value.error){
                     return (
                       <div className="col-10 mx-auto text-center text-slanted text-blue my-5">
                           <button onClick={() => { value.handleList()}}>
                               <Link to="/">Refresh List View</Link>
                             </button>
                         </div>);
-                  }
-                  if(value.isLoading && value.error === undefined){
-                    return (
-                      <div className="col-9 mx-auto col-md-6 col-lg-3 my-3 align-self-center ">
-                        <img alt="loading..." src={loading}/>
-                      </div>
-                      );
                   }else{
                     return value.movies.map(movie => {
                       return <Movie key={movie.id} movie={movie}/>

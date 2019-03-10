@@ -3,78 +3,111 @@ import React, { Component } from 'react';
 const MovieContext = React.createContext();
 
 class MovieProvider extends Component {
+
   state = {
     movies: [],
     details: undefined,
-    isLoading: true,
-    error: undefined
+    isLoading: false,
+    error: false,
+    refresh: false
   }
 
   componentDidMount() {
-    this.setState({isLoading: true})
     this.getMovies();
   }
 
-  getMovies =  async () => {
-    let tempMovies = [];
-    
-    const request = await fetch(`/api/movies`);
+  callAPI = async (url, signal) =>{
+    let headers = new Headers();
+    headers.append('Access-Control-Allow-Origin', '*');
+    headers.append('Content-Type', 'application/json; charset=utf-8');
+    headers.append('mode', 'no-cors');
+    const request = await fetch(url, { headers: headers }, {signal});
 
-    const response = await request.clone().json();
-    response.forEach(item => {
-      const singleItem = {...item};
-      tempMovies = [...tempMovies, singleItem];
-    })
-    if(request.status === 200){
+    return request;
+  }
+
+  getMovies =  async () => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    setTimeout(() => { 
+      controller.abort();
+    }, 500);
+
+    const endpoint = `/api/movies/`;
+    const url = `https://webmovieapi.azurewebsites.net${endpoint}`;
+    let tempMovies = [];
+
+    this.setState({ error: false, isLoading: true });
+
+    const request = this.callAPI(url, signal);
+
+    const response = await request;
+    if(response.status !== 200){
       this.setState(() => {
         return {
-          movies: tempMovies,
-          isLoading: false,
-          error: undefined
+          mError: true, 
+          isLoading: false
         }
       });
-    }else{
-      return {
-        movies: [],
-        error: request.status , 
-        isLoading: false}
+    }else if(response.status === 200){
+        const data = await response.json();
+        (data.value).forEach(item => {
+          const singleItem = {...item};
+          tempMovies = [...tempMovies, singleItem];
+        })
+        this.setState(() => {
+          return {
+            movies: tempMovies,
+            isLoading: false,
+            error: false
+          }
+        });
     }
   }
 
   getItem = async (id, provider) => {
-    let headers = new Headers();
-    headers.append('Access-Control-Allow-Origin', '*');
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    setTimeout(() => { 
+      controller.abort();
+    }, 500);
     const params = provider +`/`+ id;
-    const request = 
-    await fetch(`https://localhost:5001/api/movies/${params}`, 
-    {
-      headers: headers
-    });
-    console.log(request);
-    const data = await request.json();
-    if(request.status === 200){
+    const endpoint = `/api/movies/`;
+    const url = `https://webmovieapi.azurewebsites.net${endpoint}${params}`;
+
+    this.setState({ error: false, isLoading: true });
+    const request = this.callAPI(url, signal);
+
+    const response = await request;
+ 
+    if(response.status !== 200){
       this.setState(() => {
         return {
-          details: data,
-          isLoading: false,
-          error: undefined
+          error: true, 
+          isLoading: false
         }
       });
-    }else{
-      return {
-        details: undefined ,
-        error: request.status , 
-        isLoading: false}
+    }else if(response.status === 200){
+      const data = await response.json();
+      this.setState(() => {
+        return {
+          details: data.value,
+          isLoading: false,
+          error: false
+        }
+      });
     }
   }
 
   handleDetail = (id, provider) => {
-    this.setState({error: undefined, isLoading: true})
+    this.setState({ details: undefined })
     this.getItem(id, provider);
   }
 
   handleList = () => {
-    this.setState({error: undefined, isLoading: true})
+    this.setState({ movies: [] })
     this.getMovies();
   }
 
